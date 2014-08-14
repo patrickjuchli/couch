@@ -26,7 +26,7 @@ type replRequest struct {
 	Source       string `json:"source"`
 	Target       string `json:"target"`
 	Continuous   bool   `json:"continuous"`
-	Cancel       bool   `json:"cancel",omitempty`
+	Cancel       bool   `json:"cancel,omitempty"`
 }
 
 // Replicates given database to a target database. If the target database

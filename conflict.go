@@ -3,21 +3,21 @@ package couch
 import "encoding/json"
 
 const (
-	conflictsDesignId = "conflicts" // Design document for conflicts view
-	conflictsViewId   = "all"       // Name of the view to query documents with conflicts
+	conflictsDesignID = "conflicts" // Design document for conflicts view
+	conflictsViewID   = "all"       // Name of the view to query documents with conflicts
 )
 
 // Describes a conflict between different document revisions.
 // Opaque type, use associated methods.
 type Conflict struct {
 	db        *Database
-	docId     string
+	docID     string
 	revisions []DynamicDoc
 }
 
 // Get conflicting revisions for a document id. Returns nil if there are no conflicts.
-func (db *Database) ConflictFor(docId string) (*Conflict, error) {
-	revs, err := db.openRevsFor(docId)
+func (db *Database) ConflictFor(docID string) (*Conflict, error) {
+	revs, err := db.openRevsFor(docID)
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +25,7 @@ func (db *Database) ConflictFor(docId string) (*Conflict, error) {
 	if len(openLeaves) == 1 { // One alone does not a conflict make
 		return nil, nil
 	}
-	return &Conflict{revisions: openLeaves, docId: docId, db: db}, nil
+	return &Conflict{revisions: openLeaves, docID: docID, db: db}, nil
 }
 
 // Solves a conflict with a final document. It will set the revision id of
@@ -36,7 +36,7 @@ func (db *Database) ConflictFor(docId string) (*Conflict, error) {
 //
 // Be aware that while you solve a conflict, another party might have done so right before
 // you. In this case of a lost update you will receive an error. You should
-// then ask about the state of the conflict again using db.ConflictFor(myDocId).
+// then ask about the state of the conflict again using db.ConflictFor(myDocID).
 func (c *Conflict) SolveWith(finalDoc Identifiable) error {
 	if !c.isReal() {
 		return nil
@@ -44,8 +44,8 @@ func (c *Conflict) SolveWith(finalDoc Identifiable) error {
 
 	// Make finalDoc the new leaf of the first open branch.
 	// To do so, assign it the revision id of the first revision.
-	id, rev := c.revisions[0].IdRev()
-	finalDoc.SetIdRev(id, rev)
+	id, rev := c.revisions[0].IDRev()
+	finalDoc.SetIDRev(id, rev)
 	leaves := new(DocBulk)
 	leaves.Add(finalDoc)
 
@@ -98,7 +98,7 @@ func (c *Conflict) isReal() bool {
 // Note, that if the database is already large at that point, this operation can take
 // a very long time. It's recommended to call this method or ConflictsCount() right after
 // creating a new database.
-func (db *Database) Conflicts(forceView bool) (docIds []string, err error) {
+func (db *Database) Conflicts(forceView bool) (docIDs []string, err error) {
 	err = db.ensureConflictView(forceView)
 	if err != nil {
 		return
@@ -106,15 +106,15 @@ func (db *Database) Conflicts(forceView bool) (docIds []string, err error) {
 	options := map[string]interface{}{
 		"reduce": false,
 	}
-	result, err := db.Query(conflictsDesignId, conflictsViewId, options)
+	result, err := db.Query(conflictsDesignID, conflictsViewID, options)
 	if err != nil {
 		return
 	}
 
 	n := len(result.Rows)
-	docIds = make([]string, n)
+	docIDs = make([]string, n)
 	for i, row := range result.Rows {
-		docIds[i] = row.Id
+		docIDs[i] = row.ID
 	}
 	return
 }
@@ -129,7 +129,7 @@ func (db *Database) ConflictsCount(forceView bool) (int, error) {
 	options := map[string]interface{}{
 		"reduce": true,
 	}
-	result, err := db.Query(conflictsDesignId, conflictsViewId, options)
+	result, err := db.Query(conflictsDesignID, conflictsViewID, options)
 	if err != nil {
 		return 0, err
 	}
@@ -141,7 +141,7 @@ func (db *Database) ConflictsCount(forceView bool) (int, error) {
 
 // Make sure a conflict view exist, if not, create it if forceView is enabled
 func (db *Database) ensureConflictView(forceView bool) error {
-	if db.HasView(conflictsDesignId, conflictsViewId) {
+	if db.HasView(conflictsDesignID, conflictsViewID) {
 		return nil
 	}
 	if forceView {
@@ -161,7 +161,7 @@ func (db *Database) createConflictView() error {
 	view.Reduce = `_count`
 	design := newDesign()
 	design.Views["all"] = view
-	design.SetIdRev("_design/"+conflictsDesignId, "")
+	design.SetIDRev("_design/"+conflictsDesignID, "")
 	err := db.Insert(design)
 	return err
 }
@@ -173,10 +173,10 @@ type openRevision struct {
 }
 
 // Gets all open and available revisions of a document (including _deleted ones)
-func (db *Database) openRevsFor(docId string) ([]openRevision, error) {
+func (db *Database) openRevsFor(docID string) ([]openRevision, error) {
 	params := map[string]interface{}{"open_revs": "all"}
 	var revs []openRevision
-	err := db.retrieve(docId, "", &revs, params)
+	err := db.retrieve(docID, "", &revs, params)
 	return revs, err
 }
 

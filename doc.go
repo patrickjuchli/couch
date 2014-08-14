@@ -46,7 +46,7 @@
 // You will be notified of this in form of an error and you should then first retrieve the
 // latest document revision to see the changes of this lost update:
 //
-//  db.Retrieve(p.Id, p)
+//  db.Retrieve(p.ID, p)
 //
 // CouchDB doesn't edit documents in-place but adds a complete revision for each edit. That's
 // why you will be correctly informed of any lost update.
@@ -73,14 +73,14 @@
 //
 // Now, on the other database, edit the document (note that it has the same id there):
 //
-//  anotherDB.Retrieve(p.Id, p)
+//  anotherDB.Retrieve(p.ID, p)
 //  p.Name = "AnotherAnna"
 //  anotherDB.Insert(p)
 //
 // Now edit the document on the first database. Retrieve it first to make sure it
 // has the correct revision id:
 //
-//  db.Retrieve(p.Id, p)
+//  db.Retrieve(p.ID, p)
 //  p.Name = "LatestAnna"
 //  db.Insert(p)
 //
@@ -92,7 +92,7 @@
 // whether "LatestAnna" or "AnotherAnna" are correct. To detect this conflict there are a number
 // of methods. First, you can just ask a document:
 //
-//  conflict, _ := db.ConflictFor(p.Id)
+//  conflict, _ := db.ConflictFor(p.ID)
 //
 // You probably want to have a 'look' at the revisions in your preferred format:
 //
@@ -107,7 +107,7 @@
 // That's all. You can detect conflicts throughout your database like this:
 //
 //  num := db.ConflictsCount()
-//  docIds := db.Conflicts()
+//  docIDs := db.Conflicts()
 //
 // This client is still work in progress and probably also has a heavy bias towards
 // what I'm using the database for (and for what I don't). Just let me know, I'm open

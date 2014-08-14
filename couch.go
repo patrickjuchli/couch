@@ -23,11 +23,11 @@ type Database struct {
 }
 
 // Any document handled by CouchDB must be identifiable
-// by an Id and a Revision, be it a struct (using Doc
+// by an ID and a Revision, be it a struct (using Doc
 // as anonymous field) or a DynamicDoc
 type Identifiable interface {
-	SetIdRev(id string, rev string)
-	IdRev() (id string, rev string)
+	SetIDRev(id string, rev string)
+	IDRev() (id string, rev string)
 }
 
 // Defines basic struct for CouchDB document, should be added
@@ -39,7 +39,7 @@ type Identifiable interface {
 //   Title string
 //  }
 type Doc struct {
-	Id  string `json:"_id,omitempty"`
+	ID  string `json:"_id,omitempty"`
 	Rev string `json:"_rev,omitempty"`
 }
 
@@ -54,25 +54,25 @@ type Credentials struct {
 }
 
 // Implements Identifiable
-func (ref *Doc) SetIdRev(id string, rev string) {
-	ref.Id, ref.Rev = id, rev
+func (ref *Doc) SetIDRev(id string, rev string) {
+	ref.ID, ref.Rev = id, rev
 }
 
 // Implements Identifiable
-func (ref *Doc) IdRev() (id string, rev string) {
-	id, rev = ref.Id, ref.Rev
+func (ref *Doc) IDRev() (id string, rev string) {
+	id, rev = ref.ID, ref.Rev
 	return
 }
 
 // Implements Identifiable
-func (m DynamicDoc) IdRev() (id string, rev string) {
+func (m DynamicDoc) IDRev() (id string, rev string) {
 	id, _ = m["_id"].(string)
 	rev, _ = m["_rev"].(string)
 	return
 }
 
 // Implements Identifiable
-func (m DynamicDoc) SetIdRev(id string, rev string) {
+func (m DynamicDoc) SetIDRev(id string, rev string) {
 	m["_id"] = id
 	m["_rev"] = rev
 }
@@ -139,17 +139,17 @@ func (db *Database) Exists() bool {
 
 // CouchDB result of document insert
 type insertResult struct {
-	Id  string
+	ID  string
 	Ok  bool
 	Rev string
 }
 
-// Inserts a document as follows: If doc has an Id, it will edit the existing document,
+// Inserts a document as follows: If doc has an ID, it will edit the existing document,
 // if not, create a new one. In case of an edit, the doc will be assigned the new revision id.
 func (db *Database) Insert(doc Identifiable) error {
 	var result insertResult
 	var err error
-	id, _ := doc.IdRev()
+	id, _ := doc.IDRev()
 	if id == "" {
 		_, err = Do(db.Url(), "POST", db.Cred(), doc, &result)
 	} else {
@@ -158,13 +158,13 @@ func (db *Database) Insert(doc Identifiable) error {
 	if err != nil {
 		return err
 	}
-	doc.SetIdRev(result.Id, result.Rev)
+	doc.SetIDRev(result.ID, result.Rev)
 	return nil
 }
 
 // CouchDB result of bulk insert
 type bulkResult struct {
-	Id     string
+	ID     string
 	Rev    string
 	Ok     bool
 	Error  string
@@ -185,7 +185,7 @@ func (db *Database) InsertBulk(bulk *DocBulk, allOrNothing bool) (*DocBulk, erro
 	failedDocs := new(DocBulk)
 	for i, result := range results {
 		if result.Ok {
-			bulk.Docs[i].SetIdRev(result.Id, result.Rev)
+			bulk.Docs[i].SetIDRev(result.ID, result.Rev)
 		} else {
 			failedDocs.Add(bulk.Docs[i])
 		}
@@ -198,8 +198,8 @@ func (db *Database) InsertBulk(bulk *DocBulk, allOrNothing bool) (*DocBulk, erro
 }
 
 // Removes a document from the database.
-func (db *Database) Delete(docId, revId string) error {
-	url := db.docUrl(docId) + `?rev=` + revId
+func (db *Database) Delete(docID, revID string) error {
+	url := db.docUrl(docID) + `?rev=` + revID
 	_, err := Do(url, "DELETE", db.Cred(), nil, nil)
 	return err
 }
@@ -221,21 +221,21 @@ func (db *Database) Name() string {
 
 // Retrieve a document by id using its latest revision,
 // the result will be written into doc.
-func (db *Database) Retrieve(docId string, doc Identifiable) error {
-	return db.retrieve(docId, "", doc, nil)
+func (db *Database) Retrieve(docID string, doc Identifiable) error {
+	return db.retrieve(docID, "", doc, nil)
 }
 
 // Retrieve a document by id and revision, the result will be written into doc
-func (db *Database) RetrieveRevision(docId, revId string, doc Identifiable) error {
-	return db.retrieve(docId, revId, doc, nil)
+func (db *Database) RetrieveRevision(docID, revID string, doc Identifiable) error {
+	return db.retrieve(docID, revID, doc, nil)
 }
 
-func (db *Database) retrieve(id, revId string, doc interface{}, options map[string]interface{}) error {
-	if revId != "" {
+func (db *Database) retrieve(id, revID string, doc interface{}, options map[string]interface{}) error {
+	if revID != "" {
 		if options == nil {
 			options = make(map[string]interface{})
 		}
-		options["rev"] = revId
+		options["rev"] = revID
 	}
 	url := db.docUrl(id) + urlEncode(options)
 	_, err := Do(url, "GET", db.Cred(), nil, &doc)

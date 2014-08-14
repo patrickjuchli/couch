@@ -30,35 +30,35 @@ func TestDocJson(t *testing.T) {
 	dec := make(map[string]interface{})
 	json.Unmarshal(enc, dec)
 	if len(dec) > 0 {
-		t.Error("Json-encoded Doc with empty Id and Rev, resulting Json should omit both fields but it doesn't:", dec)
+		t.Error("Json-encoded Doc with empty ID and Rev, resulting Json should omit both fields but it doesn't:", dec)
 	}
 }
 
 func TestIdentifiableDoc(t *testing.T) {
 	t.Parallel()
 	doc := person{Name: "Peter", Height: 185}
-	id, rev := doc.IdRev()
+	id, rev := doc.IDRev()
 	if id != "" || rev != "" {
-		t.Fatal("Id and rev should be empty but aren't:", id, rev)
+		t.Fatal("ID and rev should be empty but aren't:", id, rev)
 	}
-	doc.SetIdRev("foo", "bar")
-	id, rev = doc.IdRev()
+	doc.SetIDRev("foo", "bar")
+	id, rev = doc.IDRev()
 	if id != "foo" || rev != "bar" {
-		t.Fatal("Id and rev should be 'foo' and 'bar', but aren't:", id, rev)
+		t.Fatal("ID and rev should be 'foo' and 'bar', but aren't:", id, rev)
 	}
 }
 
 func TestIdentifiableDynamicDoc(t *testing.T) {
 	t.Parallel()
 	doc := DynamicDoc{"Name": "Peter"}
-	id, rev := doc.IdRev()
+	id, rev := doc.IDRev()
 	if id != "" || rev != "" {
-		t.Fatal("Id and rev should be empty but aren't:", id, rev)
+		t.Fatal("ID and rev should be empty but aren't:", id, rev)
 	}
-	doc.SetIdRev("foo", "bar")
-	id, rev = doc.IdRev()
+	doc.SetIDRev("foo", "bar")
+	id, rev = doc.IDRev()
 	if id != "foo" || rev != "bar" {
-		t.Fatal("Id and rev should be 'foo' and 'bar', but aren't:", id, rev)
+		t.Fatal("ID and rev should be 'foo' and 'bar', but aren't:", id, rev)
 	}
 }
 
@@ -69,8 +69,8 @@ func TestBulk(t *testing.T) {
 	bulk.Add(&person{Name: "Peter", Height: 160})
 	bulk.Add(&person{Name: "Anna", Height: 170})
 
-	bulk.Docs[0].SetIdRev("1", "A")
-	bulk.Docs[1].SetIdRev("2", "B")
+	bulk.Docs[0].SetIDRev("1", "A")
+	bulk.Docs[1].SetIDRev("2", "B")
 
 	doc := bulk.Find("2", "C")
 	if doc != nil {
@@ -111,8 +111,8 @@ func TestIntegrationInsert(t *testing.T) {
 	if err != nil {
 		t.Fatal("Inserted new document, error:", err)
 	}
-	if doc.Id == "" {
-		t.Error("Inserted new document, should have Id set. Doc:", doc)
+	if doc.ID == "" {
+		t.Error("Inserted new document, should have ID set. Doc:", doc)
 	}
 	if doc.Rev == "" {
 		t.Error("Inserted new document, should have Rev set. Doc:", doc)
@@ -123,14 +123,14 @@ func TestIntegrationInsert(t *testing.T) {
 	}
 
 	// Edit existing
-	oldId, oldRev := doc.Id, doc.Rev
+	oldID, oldRev := doc.ID, doc.Rev
 	doc.Alive = false
 	err = db.Insert(doc)
 	if doc.Rev == oldRev {
 		t.Error("Edited existing document, should have different rev. Doc:", doc)
 	}
-	if doc.Id != oldId {
-		t.Error("Edited existing document, should have same id. Old:", oldId, "New:", doc.Id, doc)
+	if doc.ID != oldID {
+		t.Error("Edited existing document, should have same id. Old:", oldID, "New:", doc.ID, doc)
 	}
 	if err != nil {
 		t.Fatal("Edited existing document, error:", err)
@@ -152,7 +152,7 @@ func TestIntegrationBulkInsert(t *testing.T) {
 	}
 
 	for _, doc := range bulk.Docs {
-		id, rev := doc.IdRev()
+		id, rev := doc.IDRev()
 		if id == "" || rev == "" {
 			t.Error("Newly added document in bulk should have id and rev set after opereration but doesn't:", doc)
 		}
@@ -169,12 +169,12 @@ func TestIntegrationRetrieve(t *testing.T) {
 
 	// Retrieve it
 	retrieved := new(person)
-	err := db.Retrieve(original.Id, retrieved)
+	err := db.Retrieve(original.ID, retrieved)
 	if err != nil {
 		t.Error("Retrieving newly created document returns error:", err)
 	}
-	if retrieved.Id != original.Id {
-		t.Error("Retrieved document, has not same Id when added. Original:", original, "Retrieved:", retrieved)
+	if retrieved.ID != original.ID {
+		t.Error("Retrieved document, has not same ID when added. Original:", original, "Retrieved:", retrieved)
 	}
 	if retrieved.Name != original.Name || retrieved.Height != original.Height || retrieved.Alive != original.Alive {
 		t.Error("Retrieved document, has not same data when added. Original:", original, "Retrieved:", retrieved)
@@ -191,7 +191,7 @@ func TestIntegrationLostUpdate(t *testing.T) {
 
 	// 2. Retrieve document twice, Doc1, Doc2
 	doc1 := new(person)
-	err := db.Retrieve(original.Id, doc1)
+	err := db.Retrieve(original.ID, doc1)
 	if err != nil {
 		t.Fatal("Retrieving newly created document returns error:", err)
 	}
@@ -245,7 +245,7 @@ func TestIntegrationReplicate(t *testing.T) {
 
 	// Retrieve doc from replicated db and compare
 	replDoc := new(person)
-	err = targetDb.Retrieve(doc.Id, replDoc)
+	err = targetDb.Retrieve(doc.ID, replDoc)
 	if err != nil {
 		t.Error("Retrieving doc from replicated database failed with error:", err)
 	}
@@ -265,9 +265,9 @@ func TestIntegrationNoConflict(t *testing.T) {
 	insertTestDoc(doc, db, t)
 
 	// Check for conflict
-	conflict, err := db.ConflictFor(doc.Id)
+	conflict, err := db.ConflictFor(doc.ID)
 	if err != nil {
-		t.Fatal("Couldn't get conflicts for document", doc.Id, ", error:", err)
+		t.Fatal("Couldn't get conflicts for document", doc.ID, ", error:", err)
 	}
 	if conflict != nil {
 		numConflictingRevs := conflict.RevisionsCount()
@@ -301,7 +301,7 @@ func TestIntegrationReplicateWithConflict(t *testing.T) {
 
 	// Edit the doc on target
 	targetDoc := new(person)
-	targetDb.Retrieve(originDoc.Id, targetDoc)
+	targetDb.Retrieve(originDoc.ID, targetDoc)
 	targetDoc.Name = "Edit on target"
 	insertTestDoc(targetDoc, targetDb, t)
 
@@ -312,9 +312,9 @@ func TestIntegrationReplicateWithConflict(t *testing.T) {
 	}
 
 	// Doc on origin should now have 2 conflicting revisions
-	conflict, err := db.ConflictFor(originDoc.Id)
+	conflict, err := db.ConflictFor(originDoc.ID)
 	if err != nil {
-		t.Fatal("Couldn't get conflicts for document", originDoc.Id, ", error:", err)
+		t.Fatal("Couldn't get conflicts for document", originDoc.ID, ", error:", err)
 	}
 	if conflict == nil {
 		t.Fatal("Expected 2 conflicting revisions, but got none at all")
@@ -343,7 +343,7 @@ func TestIntegrationReplicateWithConflict(t *testing.T) {
 	if len(ids) != 1 {
 		t.Fatal("Get all conflicting documents, didn't find exactly 1 but:", len(ids))
 	}
-	if ids[0] != originDoc.Id {
+	if ids[0] != originDoc.ID {
 		t.Fatal("When using db.Conflicts(), the mentioned id is not the same as expected but:", ids[0])
 	}
 
@@ -370,17 +370,17 @@ func TestIntegrationReplicateWithConflict(t *testing.T) {
 	}
 
 	// Does solution have the correct id and a new revision id?
-	if solution.Id != originDoc.Id {
-		t.Fatal("Solution doc was not assigned same id of the conflicted doc:", solution.Id, "original doc:", originDoc.Id)
+	if solution.ID != originDoc.ID {
+		t.Fatal("Solution doc was not assigned same id of the conflicted doc:", solution.ID, "original doc:", originDoc.ID)
 	}
 	if solution.Rev == "" {
 		t.Fatal("Solution doc was not assigned a revision id")
 	}
 
 	// Check again if really solved
-	conflict, err = db.ConflictFor(originDoc.Id)
+	conflict, err = db.ConflictFor(originDoc.ID)
 	if err != nil {
-		t.Fatal("Couldn't get conflicts for document", originDoc.Id, ", error:", err)
+		t.Fatal("Couldn't get conflicts for document", originDoc.ID, ", error:", err)
 	}
 	if conflict != nil {
 		t.Fatal("Conflict should be solved, still conflicting revisions for doc:", conflict)
@@ -401,14 +401,14 @@ func TestIntegrationConflictView(t *testing.T) {
 	db := setUpDatabase(t)
 	defer tearDownDatabase(db, t)
 
-	if db.HasView(conflictsDesignId, conflictsViewId) {
+	if db.HasView(conflictsDesignID, conflictsViewID) {
 		t.Fatal("Shouldn't have conflict view on newly created db but reports that it has")
 	}
 	err := db.createConflictView()
 	if err != nil {
 		t.Fatal("Created conflict view, got error:", err)
 	}
-	if !db.HasView(conflictsDesignId, conflictsViewId) {
+	if !db.HasView(conflictsDesignID, conflictsViewID) {
 		t.Fatal("Should have conflict view but reports that it hasn't")
 	}
 }
@@ -422,14 +422,14 @@ func TestIntegrationDelete(t *testing.T) {
 	insertTestDoc(originDoc, db, t)
 
 	// Delete doc
-	err := db.Delete(originDoc.Id, originDoc.Rev)
+	err := db.Delete(originDoc.ID, originDoc.Rev)
 	if err != nil {
 		t.Fatal("Deleting a document returned error:", err)
 	}
 
 	// Try to retrieve doc
 	doc := new(person)
-	err = db.Retrieve(originDoc.Id, doc)
+	err = db.Retrieve(originDoc.ID, doc)
 	if err == nil {
 		t.Fatal("Retrieving deleted document did not return error but doc:", doc)
 	}

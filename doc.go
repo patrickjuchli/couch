@@ -3,8 +3,9 @@
 //
 // Setup
 //
-//  s := NewServer("http://127.0.0.1:5984")
-//  db := s.Database("test")
+//  cred := NewCredentials("much", "safe")
+//  s := NewServer("http://127.0.0.1:5984", cred)
+//  db := s.Database("MyDatabase")
 //  if !db.Exists() {
 //    db.Create()
 //  }
@@ -22,6 +23,10 @@
 //    Name string
 //  }
 //
+
+// Managing conflicting document revisions
+// See http://docs.couchdb.org/en/latest/replication/conflicts.html
+
 //  p := &DynamicDoc  // REaLLY?
 //
 //  p := &Person{Name : "Peter"}

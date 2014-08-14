@@ -212,7 +212,7 @@ func TestIntegrationLostUpdate(t *testing.T) {
 
 	// 5. Insert Doc2 (using same revision as Doc1 which is now invalid), this should provoke a conflict
 	err = db.Insert(doc2)
-	if err == nil || err != ErrDocConflict {
+	if err == nil || ErrorType(err) != "conflict" {
 		t.Error("Inserted document with old revision, should provoke conflict but didn't, error:", err)
 	}
 }
@@ -363,10 +363,10 @@ func TestIntegrationReplicateWithConflict(t *testing.T) {
 		t.Fatal("Solving the conflict produced error:", err)
 	}
 
-	// Try solving again (shouldn't work)
+	// Try solving again
 	err = conflict.SolveWith(solution)
-	if err != ErrNoConflict {
-		t.Fatal("Solving solved conflict again should return ErrNoConflict but got:", err)
+	if err != nil {
+		t.Fatal("Solving solved conflict again returned error", err)
 	}
 
 	// Does solution have the correct id and a new revision id?
@@ -386,7 +386,7 @@ func TestIntegrationReplicateWithConflict(t *testing.T) {
 		t.Fatal("Conflict should be solved, still conflicting revisions for doc:", conflict)
 	}
 
-	// // Check again overall db
+	// Check again overall db
 	numConflicts, err = db.ConflictsCount(true)
 	if err != nil {
 		t.Fatal("Get number of conflicting documents retured error:", err)
@@ -411,13 +411,6 @@ func TestIntegrationConflictView(t *testing.T) {
 	if !db.HasView(conflictsDesignId, conflictsViewId) {
 		t.Fatal("Should have conflict view but reports that it hasn't")
 	}
-
-	// After this test CouchDB can't remove the actually existing db anymore...
-	// fakeDb := server().Database("nonexisting")
-	// err = fakeDb.ensureConflictView(true)
-	// if err != ErrDatabaseUnknown {
-	// 	t.Fatal("Ensuring conflict view on non-existing database should return ErrDatabaseUnknown, got", err)
-	// }
 }
 
 func TestIntegrationDelete(t *testing.T) {
@@ -429,7 +422,7 @@ func TestIntegrationDelete(t *testing.T) {
 	insertTestDoc(originDoc, db, t)
 
 	// Delete doc
-	err := db.Delete(originDoc)
+	err := db.Delete(originDoc.Id, originDoc.Rev)
 	if err != nil {
 		t.Fatal("Deleting a document returned error:", err)
 	}
@@ -439,6 +432,37 @@ func TestIntegrationDelete(t *testing.T) {
 	err = db.Retrieve(originDoc.Id, doc)
 	if err == nil {
 		t.Fatal("Retrieving deleted document did not return error but doc:", doc)
+	}
+}
+
+func TestDo(t *testing.T) {
+	db := setUpDatabase(t)
+	defer tearDownDatabase(db, t)
+
+	localCred := NewCredentials("much", "safe")
+
+	// Wrong host
+	_, err := Do("http://127.0.0.1:598/couch_test_go/_compact", "POST", localCred, nil, nil)
+	if err == nil {
+		t.Fatal("Wrong host should return error")
+	}
+
+	// Wrong db name
+	_, err = Do("http://127.0.0.1:5984/couch_WRONG_go/_compact", "POST", localCred, nil, nil)
+	if err == nil {
+		t.Fatal("Wrong db name should return error")
+	}
+
+	// Wrong API
+	_, err = Do("http://127.0.0.1:5984/couch_test_go/_coooompact", "POST", localCred, nil, nil)
+	if err == nil {
+		t.Fatal("Wrong API call should return error")
+	}
+
+	// Anything
+	_, err = Do("http://127.0.0.1:5984/couch_test_go/_compact", "POST", localCred, nil, nil)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -471,7 +495,7 @@ func tearDownDatabase(db *Database, t *testing.T) {
 }
 
 func server() *Server {
-	return NewServer(host, "satowai", "karunka")
+	return NewServer(host, NewCredentials("much", "safe"))
 }
 
 func database() *Database {

@@ -1,23 +1,25 @@
 package couch
 
-// CouchDB Design Document (not yet open to public)
+// CouchDB Design Document (not yet public)
 type design struct {
 	Doc
 	Views map[string]view `json:"views"`
 	// There a more elements to a design document, they will be added when they are implemented
 }
 
-// CouchDB View (not yet open to public)
+// CouchDB View (not yet public)
 type view struct {
 	Map    string `json:"map,omitempty"`
 	Reduce string `json:"reduce,omitempty"`
 }
 
+// Container for ViewResultRows
 type ViewResult struct {
 	Offset uint64
 	Rows   []ViewResultRow
 }
 
+// A single view result
 type ViewResultRow struct {
 	Id    string
 	Key   interface{}
@@ -29,35 +31,28 @@ func (r *ViewResultRow) ValueInt() int {
 	return int(num)
 }
 
+// Checks if a view really exists
 func (db *Database) HasView(designId, viewId string) bool {
 	ok, _ := checkHead(db.viewUrl(designId, viewId))
 	return ok
 }
 
+// Query a view with options, see http://docs.couchdb.org/en/latest/api/ddoc/views.html#db-design-design-doc-view-view-name
 func (db *Database) Query(designId, viewId string, options map[string]interface{}) (*ViewResult, error) {
 	result := &ViewResult{}
 	url := db.viewUrl(designId, viewId) + urlEncode(options)
-	resp, err := request("GET", url, nil, &result)
-	if err != nil {
-		return nil, err
-	}
-	switch resp.StatusCode {
-	case 404:
-		err = ErrDocNotFound
-	case 401:
-		err = ErrNoReadPermission
-	case 400:
-		err = ErrBadRequest
-	}
+	_, err := Do(url, "GET", db.Cred(), nil, &result)
 	return result, err
 }
 
+// Create a new design document (not yet public)
 func newDesign() *design {
 	d := &design{}
 	d.Views = make(map[string]view)
 	return d
 }
 
+// Get the complete url to a view of a design document
 func (db *Database) viewUrl(designId string, viewId string) string {
 	return db.Url() + "/_design/" + designId + "/_view/" + viewId
 }

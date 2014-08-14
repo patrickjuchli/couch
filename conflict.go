@@ -3,14 +3,9 @@ package couch
 import "encoding/json"
 
 const (
-	// Design document id where conflicts view will be written
-	conflictsDesignId = "conflicts"
-	// Name of the view inside conflicts design document to detect conflicts
-	conflictsViewId = "all"
+	conflictsDesignId = "conflicts" // Design document for conflicts view
+	conflictsViewId   = "all"       // Name of the view to query documents with conflicts
 )
-
-// Managing conflicting document revisions
-// See http://docs.couchdb.org/en/latest/replication/conflicts.html
 
 // Describes a conflict between different document revisions.
 // Opaque type, use associated methods.
@@ -40,11 +35,11 @@ func (db *Database) ConflictFor(docId string) (*Conflict, error) {
 // the formerly conflicting revisions.
 //
 // Be aware that while you solve a conflict, another party might have done so right before
-// you. In this case of a lost update you will receive an ErrBulkInsertAONFailed. You should
+// you. In this case of a lost update you will receive an error. You should
 // then ask about the state of the conflict again using db.ConflictFor(myDocId).
 func (c *Conflict) SolveWith(finalDoc Identifiable) error {
 	if !c.isReal() {
-		return ErrNoConflict
+		return nil
 	}
 
 	// Make finalDoc the new leaf of the first open branch.

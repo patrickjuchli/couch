@@ -1,12 +1,12 @@
 package couch
 
-import "fmt"
+import (
+	"fmt"
+	"net/url"
+)
 
-// TODO What if this application stops, restarts - CouchDB will still be running replications. Add db.Replications() []Replication
-// TODO add: list of running replications
-// TODO add: replication.Running()
-// TODO add: replication filter
-// TODO what about permissions? if target has different login?
+// TODO add: db.RunningReplications() []Replication
+// TODO add: repl.Running()
 
 // A replication from a source to a target
 type Replication struct {
@@ -32,44 +32,19 @@ type replRequest struct {
 // Replicates given database to a target database. If the target database
 // does not exist it will be created. The target database may be on a different host.
 func (db *Database) ReplicateTo(target *Database, continuously bool) (*Replication, error) {
-	req := replRequest{CreateTarget: true, Source: db.Url(), Target: target.UrlWithCredentials(), Continuous: continuously}
-	resp, err := request("POST", db.replicationUrl(), req, nil)
+	req := replRequest{CreateTarget: true, Source: db.Url(), Target: target.urlWithCredentials(), Continuous: continuously}
+	_, err := Do(db.replicationUrl(), "POST", db.Cred(), req, nil)
 	if err != nil {
 		return nil, err
 	}
-	var repl *Replication
-	switch resp.StatusCode {
-	case 200, 202:
-		repl = &Replication{source: db, target: target, continuous: continuously}
-	case 400:
-		err = ErrBadRequest
-	case 401:
-		err = ErrNoAdmin
-	case 404:
-		err = ErrDatabaseUnknown
-	case 500:
-		err = ErrInvalidJsonRequest
-	}
+	repl := &Replication{source: db, target: target, continuous: continuously}
 	return repl, err
 }
 
 // Cancel a continuously running replication
 func (repl *Replication) Cancel() error {
 	req := replRequest{CreateTarget: true, Source: repl.source.Url(), Target: repl.target.Url(), Continuous: repl.continuous, Cancel: true}
-	resp, err := request("POST", repl.source.replicationUrl(), req, nil)
-	if err != nil {
-		return err
-	}
-	switch resp.StatusCode {
-	case 400:
-		err = ErrBadRequest
-	case 401:
-		err = ErrNoAdmin
-	case 404:
-		err = ErrDatabaseUnknown
-	case 500:
-		err = ErrInvalidJsonRequest
-	}
+	_, err := Do(repl.source.replicationUrl(), "POST", repl.source.Cred(), req, nil)
 	return err
 }
 
@@ -123,15 +98,12 @@ func (sync *Sync) Cancel() error {
 	return err
 }
 
-// // Returns forward replication
-// func (sync *Sync) ReplAToB() *Replication {
-// 	return sync.replA2B
-// }
-
-// // Returns backward replication
-// func (sync *Sync) ReplBToA() *Replication {
-// 	return sync.replB2A
-// }
+// Not safe, only used body of replication request
+func (db *Database) urlWithCredentials() string {
+	result, _ := url.Parse(db.Url())
+	result.User = url.UserPassword(db.server.cred.user, db.server.cred.password)
+	return result.String()
+}
 
 func (db *Database) replicationUrl() string {
 	return db.server.url + "/_replicate"

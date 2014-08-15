@@ -151,10 +151,7 @@ func (db *Database) ensureConflictView(forceView bool) error {
 		return errors.New("missing conflicts view")
 	}
 	err := db.createConflictView()
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // Inserts a design document with a view containting a map function to collect

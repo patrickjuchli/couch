@@ -18,7 +18,7 @@
 //
 // Basics
 //
-// Every document in CouchDB has to be identifiable by an id and a revision id.
+// Every document in CouchDB has to be identifiable by a document id and a revision id.
 // Two types already implement this interface called Identifiable: Doc and DynamicDoc. Doc can
 // be used as an anonymous field in your own struct. DynamicDoc is a type alias
 // for map[string]interface{}, use it when your documents have no implicit schema at all.
@@ -36,7 +36,8 @@
 //  db.Insert(p)
 //
 // After the operation the final id and revision id will be written back to p. That's
-// why you can now just edit something and call Insert() again which will save the same document.
+// why you can now just edit p and call Insert() again which will save the same document
+// under a new revision.
 //
 //  p.Name = "Anna"
 //  db.Insert(p)
@@ -73,7 +74,6 @@
 //
 // Now, on the other database, edit the document (note that it has the same id there):
 //
-//  anotherDB.Retrieve(p.ID, p)
 //  p.Name = "AnotherAnna"
 //  anotherDB.Insert(p)
 //
@@ -94,17 +94,18 @@
 //
 //  conflict, _ := db.ConflictFor(p.ID)
 //
-// You probably want to have a 'look' at the revisions in your preferred format:
+// You probably want to have a look at the revisions in your preferred format, use Revisions()
+// to unmarshal the revision data into a slice of a custom data type:
 //
 //  var revs []Person
 //  conflict.Revisions(&revs)
 //
-// And then pick one or create a new document to solve the conflict:
+// Pick one of the revisions or create a new document to solve the conflict:
 //
 //  solution := &Person{Name:"Anna"}
 //  conflict.SolveWith(solution)
 //
-// That's all. You can detect conflicts throughout your database like this:
+// That's it. You can detect conflicts like these throughout your database using:
 //
 //  num := db.ConflictsCount()
 //  docIDs := db.Conflicts()

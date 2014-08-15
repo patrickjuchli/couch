@@ -53,7 +53,7 @@
 //
 // Conflicts
 //
-// Because CouchDB supports master-master replication of databases, it is possible that conflicts
+// Because CouchDB supports multi-master replication of databases, it is possible that conflicts
 // like the one described above can't be avoided. CouchDB is not going to interrupt replication
 // because of a lost update.
 //

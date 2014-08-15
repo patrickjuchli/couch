@@ -233,14 +233,17 @@ func TestIntegrationReplicate(t *testing.T) {
 	if repl == nil {
 		t.Error("No replication handle returned")
 	}
-	if repl.source == nil {
+	if repl.Source() == nil {
 		t.Error("Replication handle doesn't contain source database")
 	}
-	if repl.target == nil {
+	if repl.Target() == nil {
 		t.Error("Replication handle doesn't contain target database")
 	}
-	if repl.continuous == true {
+	if repl.Continuous() == true {
 		t.Error("Replication handle says replication is continuous but it isn't")
+	}
+	if repl.SessionID() == "" {
+		t.Error("Missing sessionID for replication")
 	}
 
 	// Retrieve doc from replicated db and compare

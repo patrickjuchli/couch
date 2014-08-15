@@ -1,6 +1,9 @@
 package couch
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"errors"
+)
 
 const (
 	conflictsDesignID = "conflicts" // Design document for conflicts view
@@ -144,11 +147,12 @@ func (db *Database) ensureConflictView(forceView bool) error {
 	if db.HasView(conflictsDesignID, conflictsViewID) {
 		return nil
 	}
-	if forceView {
-		err := db.createConflictView()
-		if err != nil {
-			return err
-		}
+	if !forceView {
+		return errors.New("missing conflicts view")
+	}
+	err := db.createConflictView()
+	if err != nil {
+		return err
 	}
 	return nil
 }

@@ -109,6 +109,8 @@
 //  num := db.ConflictsCount()
 //  docIDs := db.Conflicts()
 //
+// Misc
+//
 // This client is still work in progress and probably also has a heavy bias towards
 // what I'm using the database for (and for what I don't). Just let me know, I'm open
 // to any suggestions.

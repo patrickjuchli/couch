@@ -102,18 +102,10 @@ func (c *Conflict) isReal() bool {
 // a very long time. It's recommended to call this method or ConflictsCount() right after
 // creating a new database.
 func (db *Database) Conflicts(forceView bool) (docIDs []string, err error) {
-	err = db.ensureConflictView(forceView)
+	result, err := db.queryConflictView(forceView, false)
 	if err != nil {
 		return
 	}
-	options := map[string]interface{}{
-		"reduce": false,
-	}
-	result, err := db.Query(conflictsDesignID, conflictsViewID, options)
-	if err != nil {
-		return
-	}
-
 	n := len(result.Rows)
 	docIDs = make([]string, n)
 	for i, row := range result.Rows {
@@ -125,14 +117,7 @@ func (db *Database) Conflicts(forceView bool) (docIDs []string, err error) {
 // Returns the number of conflicts, sets up view if forceView is enabled.
 // See db.Conflicts() for possible issues around creating a view.
 func (db *Database) ConflictsCount(forceView bool) (int, error) {
-	err := db.ensureConflictView(forceView)
-	if err != nil {
-		return 0, err
-	}
-	options := map[string]interface{}{
-		"reduce": true,
-	}
-	result, err := db.Query(conflictsDesignID, conflictsViewID, options)
+	result, err := db.queryConflictView(forceView, true)
 	if err != nil {
 		return 0, err
 	}
@@ -140,6 +125,18 @@ func (db *Database) ConflictsCount(forceView bool) (int, error) {
 		return result.Rows[0].ValueInt(), nil
 	}
 	return 0, nil
+}
+
+func (db *Database) queryConflictView(forceView bool, reduce bool) (*ViewResult, error) {
+	options := map[string]interface{}{
+		"reduce": reduce,
+	}
+	err := db.ensureConflictView(forceView)
+	if err != nil {
+		return nil, err
+	}
+	result, err := db.Query(conflictsDesignID, conflictsViewID, options)
+	return result, err
 }
 
 // Make sure a conflict view exist, if not, create it if forceView is enabled

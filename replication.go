@@ -13,6 +13,7 @@ type Replication struct {
 	source     *Database
 	target     *Database
 	continuous bool
+	sessionID  string
 }
 
 // A bidirectional replication
@@ -21,6 +22,7 @@ type Sync struct {
 	replB2A *Replication
 }
 
+// CouchDB request for replication
 type replRequest struct {
 	CreateTarget bool   `json:"create_target"`
 	Source       string `json:"source"`
@@ -29,15 +31,24 @@ type replRequest struct {
 	Cancel       bool   `json:"cancel,omitempty"`
 }
 
+// CouchDB response to replication request
+type replResponse struct {
+	Ok            bool   `json:"ok"`
+	ReplIDVersion int    `json:"replication_id_version"`
+	SessionID     string `json:"session_id"`
+	SourceLastSeq int    `json:"source_last_seq"`
+}
+
 // Replicates given database to a target database. If the target database
 // does not exist it will be created. The target database may be on a different host.
 func (db *Database) ReplicateTo(target *Database, continuously bool) (*Replication, error) {
+	var resp replResponse
 	req := replRequest{CreateTarget: true, Source: db.Url(), Target: target.urlWithCredentials(), Continuous: continuously}
-	_, err := Do(db.replicationUrl(), "POST", db.Cred(), req, nil)
+	_, err := Do(db.replicationUrl(), "POST", db.Cred(), req, &resp)
 	if err != nil {
 		return nil, err
 	}
-	repl := &Replication{source: db, target: target, continuous: continuously}
+	repl := &Replication{source: db, target: target, continuous: continuously, sessionID: resp.SessionID}
 	return repl, err
 }
 
@@ -61,6 +72,10 @@ func (repl *Replication) Target() *Database {
 // Returns whether replication is running continuously or not
 func (repl *Replication) Continuous() bool {
 	return repl.continuous
+}
+
+func (repl *Replication) SessionID() string {
+	return repl.sessionID
 }
 
 // Synchronizes two databases by setting up two replications, one from given database

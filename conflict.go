@@ -6,8 +6,11 @@ import (
 )
 
 const (
-	conflictsDesignID = "conflicts" // Design document for conflicts view
-	conflictsViewID   = "all"       // Name of the view to query documents with conflicts
+	// Design document for conflicts view
+	conflictsDesignID = "conflicts"
+
+	// Name of the view to query documents with conflicts
+	conflictsViewID = "all"
 )
 
 // Describes a conflict between different document revisions.

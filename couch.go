@@ -199,7 +199,7 @@ func (db *Database) InsertBulk(bulk *DocBulk, allOrNothing bool) (*DocBulk, erro
 		}
 	}
 	if len(failedDocs.Docs) > 0 {
-		err = errors.New("Bulk insert incomplete")
+		err = errors.New("bulk insert incomplete")
 	}
 
 	return failedDocs, err
@@ -286,13 +286,13 @@ func Do(url, method string, cred *Credentials, body, response interface{}) (*htt
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json") // TODO Header should be settable
+	req.Header.Set("Accept", "application/json")
 	if cred != nil {
 		req.SetBasicAuth(cred.user, cred.password)
 	}
 
 	// Make request
-	resp, err := http.DefaultClient.Do(req) // TODO Client should be settable, maybe in credentials and rename credentials to something else?
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return resp, err
 	}
@@ -300,12 +300,13 @@ func Do(url, method string, cred *Credentials, body, response interface{}) (*htt
 	// Catch error response in json body
 	respBody, _ := ioutil.ReadAll(resp.Body)
 	var cErr couchError
+	json.RawMessage
 	json.Unmarshal(respBody, &cErr)
 	if cErr.Type != "" {
 		return nil, cErr
 	}
 	if response != nil {
-		err = json.Unmarshal(respBody, response) // TODO unmarshaling twice not so ideal but no way around?
+		err = json.Unmarshal(respBody, response)
 	}
 	return resp, err
 }

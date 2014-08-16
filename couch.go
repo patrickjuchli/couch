@@ -118,7 +118,7 @@ func (s *Server) Database(name string) *Database {
 	return &Database{server: s, name: name}
 }
 
-// Returns the credentials associated with the database. If there aren't any
+// Cred returns the credentials associated with the database. If there aren't any
 // it will return the ones associated with the server.
 func (db *Database) Cred() *Credentials {
 	if db.cred != nil {
@@ -133,13 +133,13 @@ func (db *Database) Create() error {
 	return err
 }
 
-// Delete an existing database
+// DropDatabase deletes a database
 func (db *Database) DropDatabase() error {
 	_, err := Do(db.Url(), "DELETE", db.Cred(), nil, nil)
 	return err
 }
 
-// Checks whether a database really exists.
+// Exists returns true if a database really exists
 func (db *Database) Exists() bool {
 	exists, _ := checkHead(db.Url())
 	return exists
@@ -152,7 +152,7 @@ type insertResult struct {
 	Rev string
 }
 
-// Inserts a document as follows: If doc has an ID, it will edit the existing document,
+// Insert a document as follows: If doc has an ID, it will edit the existing document,
 // if not, create a new one. In case of an edit, the doc will be assigned the new revision id.
 func (db *Database) Insert(doc Identifiable) error {
 	var result insertResult
@@ -179,7 +179,7 @@ type bulkResult struct {
 	Reason string
 }
 
-// Inserts a bulk of documents at once. This transaction can have two semantics, all-or-nothing
+// InsertBulk inserts a bulk of documents at once. This transaction can have two semantics, all-or-nothing
 // or per-document. See http://docs.couchdb.org/en/latest/api/database/bulk-api.html#bulk-documents-transaction-semantics
 // After the transaction the method may return a new bulk of documents that couldn't be inserted.
 // If this is the case you will still get an error reporting the issue.
@@ -205,39 +205,39 @@ func (db *Database) InsertBulk(bulk *DocBulk, allOrNothing bool) (*DocBulk, erro
 	return failedDocs, err
 }
 
-// Removes a document from the database.
+// Delete removes a document from the database.
 func (db *Database) Delete(docID, revID string) error {
 	url := db.docUrl(docID) + `?rev=` + revID
 	_, err := Do(url, "DELETE", db.Cred(), nil, nil)
 	return err
 }
 
-// Returns the full url to a database
+// Url returns the absolute url to a database
 func (db *Database) Url() string {
 	return db.server.url + "/" + db.name
 }
 
-// Returns the full url to a document
+// DocUrl returns the absolute url to a document
 func (db *Database) docUrl(id string) string {
 	return db.Url() + "/" + id
 }
 
-// Returns name of database
+// Name of database
 func (db *Database) Name() string {
 	return db.name
 }
 
-// Retrieve a document by id using its latest revision,
-// the result will be written into doc.
+// Retrieve gets the latest revision document of a document, the result will be written into doc
 func (db *Database) Retrieve(docID string, doc Identifiable) error {
 	return db.retrieve(docID, "", doc, nil)
 }
 
-// Retrieve a document by id and revision, the result will be written into doc
+// RetrieveRevision gets a specific revision of a document, the result will be written into doc
 func (db *Database) RetrieveRevision(docID, revID string, doc Identifiable) error {
 	return db.retrieve(docID, revID, doc, nil)
 }
 
+// Generic method to get one or more documents
 func (db *Database) retrieve(id, revID string, doc interface{}, options map[string]interface{}) error {
 	if revID != "" {
 		if options == nil {
@@ -270,7 +270,7 @@ func (bulk *DocBulk) Find(id string, rev string) Identifiable {
 // will not be unmarshaled into response but returned as a regular Go error.
 func Do(url, method string, cred *Credentials, body, response interface{}) (*http.Response, error) {
 
-	// Prepare json request
+	// Prepare json request body
 	var bodyReader io.Reader
 	if body != nil {
 		json, err := json.Marshal(body)
@@ -311,7 +311,7 @@ func Do(url, method string, cred *Credentials, body, response interface{}) (*htt
 	return resp, err
 }
 
-// Helper to make quick HEAD request
+// Check if HEAD response of a url succeeds
 func checkHead(url string) (bool, error) {
 	resp, err := http.Head(url)
 	if err != nil {
@@ -323,7 +323,7 @@ func checkHead(url string) (bool, error) {
 	return true, nil
 }
 
-// Helper to encode map entries to url parameters
+// Encode map entries to a string that can be used as parameters to a url
 func urlEncode(options map[string]interface{}) string {
 	n := len(options)
 	if n == 0 {

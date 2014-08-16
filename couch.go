@@ -256,7 +256,7 @@ func (bulk *DocBulk) Add(doc Identifiable) {
 }
 
 // Find a document in a bulk of documents
-func (bulk *DocBulk) Find(id string, rev string) Identifiable {
+func (bulk *DocBulk) Find(id, rev string) Identifiable {
 	for _, doc := range bulk.Docs {
 		docID, docRev := doc.IDRev()
 		if docID == id && docRev == rev {

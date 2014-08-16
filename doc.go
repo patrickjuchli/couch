@@ -110,9 +110,11 @@
 //  num := db.ConflictsCount()
 //  docIDs := db.Conflicts()
 //
-// Misc
 //
-// This client is still work in progress and probably also has a heavy bias towards
-// what I'm using the database for (and for what I don't). Just let me know, I'm open
-// to any suggestions.
+// Error handling
+//
+// Errors returned by CouchDB will be converted into a Go error. The regular Error() method will
+// then return a combination of the shortform (e.g. bad_request) as well as the longer and more
+// specific description. To be able to identify a specific error within your application, use ErrorType() to get
+// the shortform only.
 package couch

@@ -1,6 +1,6 @@
 # Couch 
 
-[![Build Status](https://travis-ci.org/patrickjuchli/couch.png)](https://travis-ci.org/patrickjuchli/couch) [![GoDoc](https://godoc.org/github.com/patrickjuchli/couch?status.svg)](http://godoc.org/github.com/patrickjuchli/couch)
+[![Build Status](https://travis-ci.org/patrickjuchli/couch.svg)](https://travis-ci.org/patrickjuchli/couch) [![GoDoc](https://godoc.org/github.com/patrickjuchli/couch?status.svg)](http://godoc.org/github.com/patrickjuchli/couch)
 
 This is a CouchDB client for Go, it focuses on basic operations, proper conflict management, error handling and replication. 
 

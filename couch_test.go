@@ -6,10 +6,13 @@ import (
 )
 
 // Most tests are integration tests that need a running CouchDB
-const (
-	host         = "http://127.0.0.1:5984"
-	databaseName = "couch_test_go"
+var (
+	testHost              = "http://localhost:5984"
+	testDB                = "couch_test_go"
+	testCred *Credentials = nil //NewCredentials("much", "safe")
 )
+
+// Use testing flags!
 
 // TODO When setUpDatabase use different database each time (via counter) to make
 // integration tests more isolated and allow for parallel execution
@@ -442,7 +445,7 @@ func TestDo(t *testing.T) {
 	db := setUpDatabase(t)
 	defer tearDownDatabase(db, t)
 
-	localCred := NewCredentials("much", "safe")
+	localCred := testCred
 
 	// Wrong host
 	_, err := Do("http://127.0.0.1:598/couch_test_go/_compact", "POST", localCred, nil, nil)
@@ -498,9 +501,9 @@ func tearDownDatabase(db *Database, t *testing.T) {
 }
 
 func server() *Server {
-	return NewServer(host, NewCredentials("much", "safe"))
+	return NewServer(testHost, testCred)
 }
 
 func database() *Database {
-	return server().Database(databaseName)
+	return server().Database(testDB)
 }

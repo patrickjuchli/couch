@@ -1,3 +1,5 @@
 language: go
 services:
   - couchdb
+before_script:
+  - curl -X PUT localhost:5984/couch_test_go

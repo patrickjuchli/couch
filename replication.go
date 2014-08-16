@@ -116,7 +116,10 @@ func (sync *Sync) Cancel() error {
 // Not safe, only used body of replication request
 func (db *Database) urlWithCredentials() string {
 	result, _ := url.Parse(db.URL())
-	result.User = url.UserPassword(db.server.cred.user, db.server.cred.password)
+	cred := db.Cred()
+	if cred != nil {
+		result.User = url.UserPassword(db.server.cred.user, db.server.cred.password)
+	}
 	return result.String()
 }
 

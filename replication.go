@@ -43,8 +43,8 @@ type replResponse struct {
 // does not exist it will be created. The target database may be on a different host.
 func (db *Database) ReplicateTo(target *Database, continuously bool) (*Replication, error) {
 	var resp replResponse
-	req := replRequest{CreateTarget: true, Source: db.Url(), Target: target.urlWithCredentials(), Continuous: continuously}
-	_, err := Do(db.replicationUrl(), "POST", db.Cred(), req, &resp)
+	req := replRequest{CreateTarget: true, Source: db.URL(), Target: target.urlWithCredentials(), Continuous: continuously}
+	_, err := Do(db.replicationURL(), "POST", db.Cred(), req, &resp)
 	if err != nil {
 		return nil, err
 	}
@@ -54,8 +54,8 @@ func (db *Database) ReplicateTo(target *Database, continuously bool) (*Replicati
 
 // Cancel a continuously running replication
 func (repl *Replication) Cancel() error {
-	req := replRequest{CreateTarget: true, Source: repl.source.Url(), Target: repl.target.Url(), Continuous: repl.continuous, Cancel: true}
-	_, err := Do(repl.source.replicationUrl(), "POST", repl.source.Cred(), req, nil)
+	req := replRequest{CreateTarget: true, Source: repl.source.URL(), Target: repl.target.URL(), Continuous: repl.continuous, Cancel: true}
+	_, err := Do(repl.source.replicationURL(), "POST", repl.source.Cred(), req, nil)
 	return err
 }
 
@@ -115,11 +115,11 @@ func (sync *Sync) Cancel() error {
 
 // Not safe, only used body of replication request
 func (db *Database) urlWithCredentials() string {
-	result, _ := url.Parse(db.Url())
+	result, _ := url.Parse(db.URL())
 	result.User = url.UserPassword(db.server.cred.user, db.server.cred.password)
 	return result.String()
 }
 
-func (db *Database) replicationUrl() string {
+func (db *Database) replicationURL() string {
 	return db.server.url + "/_replicate"
 }

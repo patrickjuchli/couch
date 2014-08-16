@@ -129,19 +129,19 @@ func (db *Database) Cred() *Credentials {
 
 // Create a new database
 func (db *Database) Create() error {
-	_, err := Do(db.Url(), "PUT", db.Cred(), nil, nil)
+	_, err := Do(db.URL(), "PUT", db.Cred(), nil, nil)
 	return err
 }
 
 // DropDatabase deletes a database
 func (db *Database) DropDatabase() error {
-	_, err := Do(db.Url(), "DELETE", db.Cred(), nil, nil)
+	_, err := Do(db.URL(), "DELETE", db.Cred(), nil, nil)
 	return err
 }
 
 // Exists returns true if a database really exists
 func (db *Database) Exists() bool {
-	exists, _ := checkHead(db.Url())
+	exists, _ := checkHead(db.URL())
 	return exists
 }
 
@@ -159,9 +159,9 @@ func (db *Database) Insert(doc Identifiable) error {
 	var err error
 	id, _ := doc.IDRev()
 	if id == "" {
-		_, err = Do(db.Url(), "POST", db.Cred(), doc, &result)
+		_, err = Do(db.URL(), "POST", db.Cred(), doc, &result)
 	} else {
-		_, err = Do(db.docUrl(id), "PUT", db.Cred(), doc, &result)
+		_, err = Do(db.docURL(id), "PUT", db.Cred(), doc, &result)
 	}
 	if err != nil {
 		return err
@@ -186,7 +186,7 @@ type bulkResult struct {
 func (db *Database) InsertBulk(bulk *DocBulk, allOrNothing bool) (*DocBulk, error) {
 	var results []bulkResult
 	bulk.AllOrNothing = allOrNothing
-	_, err := Do(db.Url()+"/_bulk_docs", "POST", db.Cred(), bulk, &results)
+	_, err := Do(db.URL()+"/_bulk_docs", "POST", db.Cred(), bulk, &results)
 
 	// Update documents in bulk with ids and rev ids,
 	// compile bulk of failed documents
@@ -207,19 +207,19 @@ func (db *Database) InsertBulk(bulk *DocBulk, allOrNothing bool) (*DocBulk, erro
 
 // Delete removes a document from the database.
 func (db *Database) Delete(docID, revID string) error {
-	url := db.docUrl(docID) + `?rev=` + revID
+	url := db.docURL(docID) + `?rev=` + revID
 	_, err := Do(url, "DELETE", db.Cred(), nil, nil)
 	return err
 }
 
 // Url returns the absolute url to a database
-func (db *Database) Url() string {
+func (db *Database) URL() string {
 	return db.server.url + "/" + db.name
 }
 
 // DocUrl returns the absolute url to a document
-func (db *Database) docUrl(id string) string {
-	return db.Url() + "/" + id
+func (db *Database) docURL(id string) string {
+	return db.URL() + "/" + id
 }
 
 // Name of database
@@ -245,7 +245,7 @@ func (db *Database) retrieve(id, revID string, doc interface{}, options map[stri
 		}
 		options["rev"] = revID
 	}
-	url := db.docUrl(id) + urlEncode(options)
+	url := db.docURL(id) + urlEncode(options)
 	_, err := Do(url, "GET", db.Cred(), nil, &doc)
 	return err
 }
@@ -300,7 +300,6 @@ func Do(url, method string, cred *Credentials, body, response interface{}) (*htt
 	// Catch error response in json body
 	respBody, _ := ioutil.ReadAll(resp.Body)
 	var cErr couchError
-	json.RawMessage
 	json.Unmarshal(respBody, &cErr)
 	if cErr.Type != "" {
 		return nil, cErr

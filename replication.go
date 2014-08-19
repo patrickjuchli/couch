@@ -84,7 +84,7 @@ func (repl *Replication) IsActive() (bool, error) {
 		return false, err
 	}
 	for _, task := range tasks {
-		if task.IsReplication() && task.HasReplicationID(repl.SessionID()) {
+		if task.HasReplicationID(repl.SessionID()) {
 			return true, nil
 		}
 	}

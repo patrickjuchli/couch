@@ -121,6 +121,16 @@ func (s *Server) Database(name string) *Database {
 	return &Database{server: s, name: name}
 }
 
+// URL returns the host (including its port) of a CouchDB instance.
+func (s *Server) URL() string {
+	return s.url
+}
+
+// Cred returns credentials associated with a CouchDB instance.
+func (s *Server) Cred() *Credentials {
+	return s.cred
+}
+
 // ActiveTasks returns all currently active tasks of a CouchDB instance.
 func (s *Server) ActiveTasks() ([]Task, error) {
 	var tasks []Task
@@ -134,7 +144,11 @@ func (db *Database) Cred() *Credentials {
 	if db.cred != nil {
 		return db.cred
 	}
-	return db.server.cred
+	return db.server.Cred()
+}
+
+func (db *Database) Server() *Server {
+	return db.server
 }
 
 // Create a new database

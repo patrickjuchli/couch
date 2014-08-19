@@ -65,7 +65,7 @@ func (t Task) HasReplicationID(id string) bool {
 // Cancel a continuously running replication
 func (repl *Replication) Cancel() error {
 	req := replRequest{CreateTarget: true, Source: repl.source.URL(), Target: repl.target.URL(), Continuous: repl.continuous, Cancel: true}
-	_, err := Do(repl.source.replicationURL(), "POST", repl.source.Cred(), req, nil)
+	_, err := Do(repl.Source().replicationURL(), "POST", repl.source.Cred(), req, nil)
 	return err
 }
 

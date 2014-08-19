@@ -81,6 +81,41 @@ func TestBulk(t *testing.T) {
 	}
 }
 
+func TestTask(t *testing.T) {
+	t.Parallel()
+	task := make(couch.Task)
+
+	// No task type
+	if task.IsReplication() {
+		t.Fatal("Task shouldn't be classified as a replication", task)
+	}
+
+	// Indexer task type
+	task["type"] = "indexer"
+	if task.IsReplication() {
+		t.Fatal("Task shouldn't be classified as a replication", task)
+	}
+
+	// Replication task type
+	task["type"] = "replication"
+	if !task.IsReplication() {
+		t.Fatal("Task should be classified as a replication", task)
+	}
+
+	// Replication ID
+	if task.HasReplicationID("1234") {
+		t.Fatal("Task should not have replication ID 1234", task)
+	}
+	task["replication_id"] = "1234"
+	if !task.HasReplicationID("1234") {
+		t.Fatal("Task should have replication ID 1234", task)
+	}
+	task["replication_id"] = "1234+continuous+create_target"
+	if !task.HasReplicationID("1234") {
+		t.Fatal("Task should have replication ID prefix 1234", task)
+	}
+}
+
 func TestDatabase(t *testing.T) {
 	t.Parallel()
 	db := server().Database("foo")

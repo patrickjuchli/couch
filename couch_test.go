@@ -1,26 +1,22 @@
-package couch
+package couch_test
 
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/patrickjuchli/couch"
 )
 
 // Most tests are integration tests that need a running CouchDB
 var (
-	testHost              = "http://localhost:5984"
-	testDB                = "couch_test_go"
-	testCred *Credentials = nil //NewCredentials("much", "safe")
+	testHost                      = "http://localhost:5984"
+	testDB                        = "couch_test_go"
+	testReplDB                    = "couch_test_repl"
+	testCred   *couch.Credentials = nil //NewCredentials("much", "safe")
 )
 
-// Use testing flags!
-
-// TODO When setUpDatabase use different database each time (via counter) to make
-// integration tests more isolated and allow for parallel execution
-// TODO test when adding two docs to a bulk with same id but differing revisions
-
-// Just an arbitrary test struct
-type person struct {
-	Doc
+type Person struct {
+	couch.Doc
 	Name   string
 	Height uint8
 	Alive  bool
@@ -28,7 +24,7 @@ type person struct {
 
 func TestDocJson(t *testing.T) {
 	t.Parallel()
-	ref := Doc{}
+	ref := Person{}
 	enc, _ := json.Marshal(ref)
 	dec := make(map[string]interface{})
 	json.Unmarshal(enc, dec)
@@ -39,7 +35,7 @@ func TestDocJson(t *testing.T) {
 
 func TestIdentifiableDoc(t *testing.T) {
 	t.Parallel()
-	doc := person{Name: "Peter", Height: 185}
+	doc := Person{Name: "Peter", Height: 185}
 	id, rev := doc.IDRev()
 	if id != "" || rev != "" {
 		t.Fatal("ID and rev should be empty but aren't:", id, rev)
@@ -53,7 +49,7 @@ func TestIdentifiableDoc(t *testing.T) {
 
 func TestIdentifiableDynamicDoc(t *testing.T) {
 	t.Parallel()
-	doc := DynamicDoc{"Name": "Peter"}
+	doc := couch.DynamicDoc{"Name": "Peter"}
 	id, rev := doc.IDRev()
 	if id != "" || rev != "" {
 		t.Fatal("ID and rev should be empty but aren't:", id, rev)
@@ -109,7 +105,7 @@ func TestIntegrationInsert(t *testing.T) {
 	defer tearDownDatabase(db, t)
 
 	// Add new document
-	doc := &person{Name: "Peter", Height: 185, Alive: true}
+	doc := &Person{Name: "Peter", Height: 185, Alive: true}
 	err := db.Insert(doc)
 	if err != nil {
 		t.Fatal("Inserted new document, error:", err)
@@ -167,11 +163,11 @@ func TestIntegrationRetrieve(t *testing.T) {
 	defer tearDownDatabase(db, t)
 
 	// Add new document (see TestIntegrationInsert)
-	original := &person{Name: "Peter", Height: 185, Alive: true}
+	original := &Person{Name: "Peter", Height: 185, Alive: true}
 	insertTestDoc(original, db, t)
 
 	// Retrieve it
-	retrieved := new(person)
+	retrieved := new(Person)
 	err := db.Retrieve(original.ID, retrieved)
 	if err != nil {
 		t.Error("Retrieving newly created document returns error:", err)
@@ -189,11 +185,11 @@ func TestIntegrationLostUpdate(t *testing.T) {
 	defer tearDownDatabase(db, t)
 
 	// 1. Insert new document
-	original := &person{Name: "Peter", Height: 185, Alive: true}
+	original := &Person{Name: "Peter", Height: 185, Alive: true}
 	insertTestDoc(original, db, t)
 
 	// 2. Retrieve document twice, Doc1, Doc2
-	doc1 := new(person)
+	doc1 := new(Person)
 	err := db.Retrieve(original.ID, doc1)
 	if err != nil {
 		t.Fatal("Retrieving newly created document returns error:", err)
@@ -215,7 +211,7 @@ func TestIntegrationLostUpdate(t *testing.T) {
 
 	// 5. Insert Doc2 (using same revision as Doc1 which is now invalid), this should provoke a conflict
 	err = db.Insert(doc2)
-	if err == nil || ErrorType(err) != "conflict" {
+	if err == nil || couch.ErrorType(err) != "conflict" {
 		t.Error("Inserted document with old revision, should provoke conflict but didn't, error:", err)
 	}
 }
@@ -224,11 +220,11 @@ func TestIntegrationReplicate(t *testing.T) {
 	db := setUpDatabase(t)
 	defer tearDownDatabase(db, t)
 
-	doc := &person{Name: "Peter", Height: 185, Alive: true}
+	doc := &Person{Name: "Peter", Height: 185, Alive: true}
 	insertTestDoc(doc, db, t)
 
 	// Replicate
-	targetDb := server().Database("repl_test")
+	targetDb := server().Database(testReplDB)
 	repl, err := db.ReplicateTo(targetDb, false)
 	if err != nil {
 		t.Fatal("Replication returned error:", err)
@@ -250,7 +246,7 @@ func TestIntegrationReplicate(t *testing.T) {
 	}
 
 	// Retrieve doc from replicated db and compare
-	replDoc := new(person)
+	replDoc := new(Person)
 	err = targetDb.Retrieve(doc.ID, replDoc)
 	if err != nil {
 		t.Error("Retrieving doc from replicated database failed with error:", err)
@@ -267,7 +263,7 @@ func TestIntegrationNoConflict(t *testing.T) {
 	defer tearDownDatabase(db, t)
 
 	// Insert a document
-	doc := &person{Name: "Original", Height: 185, Alive: true}
+	doc := &Person{Name: "Original", Height: 185, Alive: true}
 	insertTestDoc(doc, db, t)
 
 	// Check for conflict
@@ -289,11 +285,11 @@ func TestIntegrationReplicateWithConflict(t *testing.T) {
 	defer tearDownDatabase(db, t)
 
 	// Insert doc
-	originDoc := &person{Name: "Original", Height: 185, Alive: true}
+	originDoc := &Person{Name: "Original", Height: 185, Alive: true}
 	insertTestDoc(originDoc, db, t)
 
 	// Replicate db to target
-	targetDb := server().Database("repl_test")
+	targetDb := db.Server().Database(testReplDB)
 	targetDb.DropDatabase()
 	defer targetDb.DropDatabase()
 	_, err := db.ReplicateTo(targetDb, false)
@@ -306,7 +302,7 @@ func TestIntegrationReplicateWithConflict(t *testing.T) {
 	insertTestDoc(originDoc, db, t)
 
 	// Edit the doc on target
-	targetDoc := new(person)
+	targetDoc := new(Person)
 	targetDb.Retrieve(originDoc.ID, targetDoc)
 	targetDoc.Name = "Edit on target"
 	insertTestDoc(targetDoc, targetDb, t)
@@ -331,10 +327,10 @@ func TestIntegrationReplicateWithConflict(t *testing.T) {
 	}
 
 	// It's useful to have conflicting revisions accesible with a struct if possible
-	var revs []person
+	var revs []Person
 	conflict.Revisions(&revs)
 	if len(revs) != 2 {
-		t.Error("There should be two conflicting revisions represented by struct person but got", len(revs))
+		t.Error("There should be two conflicting revisions represented by struct Person but got", len(revs))
 	}
 	nameA, nameB := revs[0].Name, revs[1].Name
 	if !((nameA == "Edit on origin" && nameB == "Edit on target") || (nameA == "Edit on target" && nameB == "Edit on origin")) {
@@ -363,7 +359,7 @@ func TestIntegrationReplicateWithConflict(t *testing.T) {
 	}
 
 	// Solve conflict
-	solution := &person{Name: "Solution", Height: 185, Alive: true}
+	solution := &Person{Name: "Solution", Height: 185, Alive: true}
 	err = conflict.SolveWith(solution)
 	if err != nil {
 		t.Fatal("Solving the conflict produced error:", err)
@@ -407,14 +403,14 @@ func TestIntegrationConflictView(t *testing.T) {
 	db := setUpDatabase(t)
 	defer tearDownDatabase(db, t)
 
-	if db.HasView(conflictsDesignID, conflictsViewID) {
+	if db.HasView(couch.ConflictsDesignID, couch.ConflictsViewID) {
 		t.Fatal("Shouldn't have conflict view on newly created db but reports that it has")
 	}
-	err := db.createConflictView()
+	_, err := db.ConflictsCount(true)
 	if err != nil {
 		t.Fatal("Created conflict view, got error:", err)
 	}
-	if !db.HasView(conflictsDesignID, conflictsViewID) {
+	if !db.HasView(couch.ConflictsDesignID, couch.ConflictsViewID) {
 		t.Fatal("Should have conflict view but reports that it hasn't")
 	}
 }
@@ -424,7 +420,7 @@ func TestIntegrationDelete(t *testing.T) {
 	defer tearDownDatabase(db, t)
 
 	// Insert doc
-	originDoc := &person{Name: "Original", Height: 185, Alive: true}
+	originDoc := &Person{Name: "Original", Height: 185, Alive: true}
 	insertTestDoc(originDoc, db, t)
 
 	// Delete doc
@@ -434,10 +430,57 @@ func TestIntegrationDelete(t *testing.T) {
 	}
 
 	// Try to retrieve doc
-	doc := new(person)
+	doc := new(Person)
 	err = db.Retrieve(originDoc.ID, doc)
 	if err == nil {
 		t.Fatal("Retrieving deleted document did not return error but doc:", doc)
+	}
+}
+
+func TestReplicationContinuous(t *testing.T) {
+	db := setUpDatabase(t)
+	defer tearDownDatabase(db, t)
+
+	// Insert doc
+	originDoc := &Person{Name: "Original", Height: 185, Alive: true}
+	insertTestDoc(originDoc, db, t)
+
+	// Start replicating continuously
+	replDB := db.Server().Database("repl_target")
+	defer tearDownDatabase(replDB, t)
+	repl, err := db.ReplicateTo(replDB, true)
+	if err != nil {
+		t.Fatal("Started continuous replication, got error", err)
+	}
+
+	// Check if replication is active
+	active, err := repl.IsActive()
+	if err != nil {
+		t.Fatal("IsActive returned error", err)
+	}
+	if !active {
+		t.Fatal("Replication should be active but isn't reported as such.")
+	}
+
+	// // Get all active replications
+	// _, err = db.server.ActiveReplications()
+	// if err != nil {
+	// 	t.Fatal("Getting active replications returns error", err)
+	// }
+
+	// Cancel it
+	err = repl.Cancel()
+	if err != nil {
+		t.Fatal("Canceled continuous replication, got error", err)
+	}
+
+	// Check again, if active
+	active, err = repl.IsActive()
+	if err != nil {
+		t.Fatal("IsActive returned error", err)
+	}
+	if active {
+		t.Fatal("Replication should not be active anymore but isn't reported as such.")
 	}
 }
 
@@ -448,37 +491,37 @@ func TestDo(t *testing.T) {
 	localCred := testCred
 
 	// Wrong host
-	_, err := Do("http://127.0.0.1:598/couch_test_go/_compact", "POST", localCred, nil, nil)
+	_, err := couch.Do("http://127.0.0.1:598/couch_test_go/_compact", "POST", localCred, nil, nil)
 	if err == nil {
 		t.Fatal("Wrong host should return error")
 	}
 
 	// Wrong db name
-	_, err = Do("http://127.0.0.1:5984/couch_WRONG_go/_compact", "POST", localCred, nil, nil)
+	_, err = couch.Do("http://127.0.0.1:5984/couch_WRONG_go/_compact", "POST", localCred, nil, nil)
 	if err == nil {
 		t.Fatal("Wrong db name should return error")
 	}
 
 	// Wrong API
-	_, err = Do("http://127.0.0.1:5984/couch_test_go/_coooompact", "POST", localCred, nil, nil)
+	_, err = couch.Do("http://127.0.0.1:5984/couch_test_go/_coooompact", "POST", localCred, nil, nil)
 	if err == nil {
 		t.Fatal("Wrong API call should return error")
 	}
 
 	// Anything
-	_, err = Do("http://127.0.0.1:5984/couch_test_go/_compact", "POST", localCred, nil, nil)
+	_, err = couch.Do("http://127.0.0.1:5984/couch_test_go/_compact", "POST", localCred, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
-func insertTestDoc(doc Identifiable, db *Database, t *testing.T) {
+func insertTestDoc(doc couch.Identifiable, db *couch.Database, t *testing.T) {
 	err := db.Insert(doc)
 	if err != nil {
 		t.Fatal("Inserted new document, error:", err)
 	}
 }
-func setUpDatabase(t *testing.T) *Database {
+func setUpDatabase(t *testing.T) *couch.Database {
 	db := database()
 	if db.Exists() {
 		err := db.DropDatabase()
@@ -493,17 +536,17 @@ func setUpDatabase(t *testing.T) *Database {
 	return db
 }
 
-func tearDownDatabase(db *Database, t *testing.T) {
+func tearDownDatabase(db *couch.Database, t *testing.T) {
 	err := db.DropDatabase()
 	if err != nil {
 		t.Fatal("Tried to delete existing database, failed with error:", err)
 	}
 }
 
-func server() *Server {
-	return NewServer(testHost, testCred)
+func server() *couch.Server {
+	return couch.NewServer(testHost, testCred)
 }
 
-func database() *Database {
+func database() *couch.Database {
 	return server().Database(testDB)
 }

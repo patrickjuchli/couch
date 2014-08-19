@@ -94,6 +94,7 @@ type couchError struct {
 	Reason string `json:"reason"`
 }
 
+// Error implements the error interface
 func (e couchError) Error() string {
 	return "couchdb: " + e.Type + " (" + e.Reason + ")"
 }

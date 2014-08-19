@@ -1,12 +1,11 @@
 package couch
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 )
-
-// TODO add: db.RunningReplications() []Replication
-// TODO add: repl.Running()
 
 // A replication from a source to a target
 type Replication struct {
@@ -62,6 +61,65 @@ func (t Task) HasReplicationID(id string) bool {
 	s, _ := t["replication_id"].(string)
 	return strings.HasPrefix(s, id)
 }
+
+// func (t Task) Replication(relativeTo *Server) *Replication {
+// 	var r *Replication
+// 	if t.isReplication() {
+// 		sourceURL, _ := url.Parse(t["source"])
+// 		sourceURL.Path
+// 		//sourceDB :=
+// 		//targetDB :=
+// 		r = &Replication{
+// 			sessionID:  t["replication_id"],
+// 			continuous: t["continuous"],
+// 		}
+// 	}
+// 	return r
+// }
+
+// IsRunning returns whether a replication is currently active or not.
+func (repl *Replication) IsActive() (bool, error) {
+	tasks, err := repl.Source().Server().ActiveTasks()
+	if err != nil {
+		return false, err
+	}
+	for _, task := range tasks {
+		if task.IsReplication() && task.HasReplicationID(repl.SessionID()) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// IsActive returns whether a sync is active or not. A sync process consists of
+// two replications. If one is active and the other isn't, you get an error message.
+func (sync *Sync) IsActive() (bool, error) {
+	a2bIsActive, err := sync.replA2B.IsActive()
+	if err != nil {
+		return false, err
+	}
+	b2aIsActive, err := sync.replA2B.IsActive()
+	if err != nil {
+		return false, err
+	}
+	if a2bIsActive != b2aIsActive {
+		return false, errors.New("corrupt sync, only one replication active instead of two")
+	}
+	return a2bIsActive && b2aIsActive, nil
+}
+
+// // ActiveReplications returns all currently active replications on a server
+// func (s *Server) ActiveReplications() ([]*Replication, error) {
+// 	var repls []*Replication
+// 	err := s.ActiveTasks(func(t Task) {
+// 		repl := t.Replication(s)
+// 		if repl != nil {
+// 			repls = append(repls, repl)
+// 		}
+// 	})
+// 	return repls, err
+// }
+
 // Cancel a continuously running replication
 func (repl *Replication) Cancel() error {
 	req := replRequest{CreateTarget: true, Source: repl.source.URL(), Target: repl.target.URL(), Continuous: repl.continuous, Cancel: true}
@@ -118,7 +176,7 @@ func (sync *Sync) Cancel() error {
 	errB2A := sync.replB2A.Cancel()
 	var err error
 	if errA2B != nil || errB2A != nil {
-		err = fmt.Errorf("couch: Error cancelling replication, a->b: %v, b->a: %v", errA2B, errB2A)
+		err = fmt.Errorf("can't cancel sync: a->b: %v, b->a: %v", errA2B, errB2A)
 	}
 	return err
 }

@@ -68,9 +68,9 @@ func TestIdentifiableDynamicDoc(t *testing.T) {
 func TestBulk(t *testing.T) {
 	t.Parallel()
 
-	bulk := new(DocBulk)
-	bulk.Add(&person{Name: "Peter", Height: 160})
-	bulk.Add(&person{Name: "Anna", Height: 170})
+	bulk := new(couch.Bulk)
+	bulk.Add(&Person{Name: "Peter", Height: 160})
+	bulk.Add(&Person{Name: "Anna", Height: 170})
 
 	bulk.Docs[0].SetIDRev("1", "A")
 	bulk.Docs[1].SetIDRev("2", "B")
@@ -144,10 +144,10 @@ func TestIntegrationBulkInsert(t *testing.T) {
 	db := setUpDatabase(t)
 	defer tearDownDatabase(db, t)
 
-	bulk := new(DocBulk)
-	bulk.Add(&person{Name: "Peter", Height: 160})
-	bulk.Add(&person{Name: "Anna", Height: 170})
-	bulk.Add(&person{Name: "Stefan", Height: 180})
+	bulk := new(couch.Bulk)
+	bulk.Add(&Person{Name: "Peter", Height: 160})
+	bulk.Add(&Person{Name: "Anna", Height: 170})
+	bulk.Add(&Person{Name: "Stefan", Height: 180})
 
 	failedBulk, err := db.InsertBulk(bulk, true)
 	if err != nil {

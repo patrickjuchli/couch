@@ -56,7 +56,7 @@ type Credentials struct {
 }
 
 // Container for bulk operations, use associated methods.
-type DocBulk struct {
+type Bulk struct {
 	Docs         []Identifiable `json:"docs"`
 	AllOrNothing bool           `json:"all_or_nothing"`
 }
@@ -193,14 +193,14 @@ type bulkResult struct {
 // or per-document. See http://docs.couchdb.org/en/latest/api/database/bulk-api.html#bulk-documents-transaction-semantics
 // After the transaction the method may return a new bulk of documents that couldn't be inserted.
 // If this is the case you will still get an error reporting the issue.
-func (db *Database) InsertBulk(bulk *DocBulk, allOrNothing bool) (*DocBulk, error) {
+func (db *Database) InsertBulk(bulk *Bulk, allOrNothing bool) (*Bulk, error) {
 	var results []bulkResult
 	bulk.AllOrNothing = allOrNothing
 	_, err := Do(db.URL()+"/_bulk_docs", "POST", db.Cred(), bulk, &results)
 
 	// Update documents in bulk with ids and rev ids,
 	// compile bulk of failed documents
-	failedDocs := new(DocBulk)
+	failedDocs := new(Bulk)
 	for i, result := range results {
 		if result.Ok {
 			bulk.Docs[i].SetIDRev(result.ID, result.Rev)
@@ -261,12 +261,12 @@ func (db *Database) retrieve(id, revID string, doc interface{}, options map[stri
 }
 
 // Add a document to a bulk of documents
-func (bulk *DocBulk) Add(doc Identifiable) {
+func (bulk *Bulk) Add(doc Identifiable) {
 	bulk.Docs = append(bulk.Docs, doc)
 }
 
 // Find a document in a bulk of documents
-func (bulk *DocBulk) Find(id, rev string) Identifiable {
+func (bulk *Bulk) Find(id, rev string) Identifiable {
 	for _, doc := range bulk.Docs {
 		docID, docRev := doc.IDRev()
 		if docID == id && docRev == rev {

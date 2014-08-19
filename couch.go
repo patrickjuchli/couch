@@ -61,6 +61,9 @@ type DocBulk struct {
 	AllOrNothing bool           `json:"all_or_nothing"`
 }
 
+// Task describes an active task running on an instance, e.g. a continuous replication
+type Task map[string]interface{}
+
 // Implements Identifiable
 func (ref *Doc) SetIDRev(id string, rev string) {
 	ref.ID, ref.Rev = id, rev
@@ -116,6 +119,13 @@ func NewCredentials(user, password string) *Credentials {
 // Returns a database handle
 func (s *Server) Database(name string) *Database {
 	return &Database{server: s, name: name}
+}
+
+// ActiveTasks returns all currently active tasks of a CouchDB instance.
+func (s *Server) ActiveTasks() ([]Task, error) {
+	var tasks []Task
+	_, err := Do(s.URL()+"/_active_tasks", "GET", s.Cred(), nil, &tasks)
+	return tasks, err
 }
 
 // Cred returns the credentials associated with the database. If there aren't any

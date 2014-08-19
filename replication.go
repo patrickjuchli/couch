@@ -52,6 +52,16 @@ func (db *Database) ReplicateTo(target *Database, continuously bool) (*Replicati
 	return repl, err
 }
 
+// IsReplication returns true if a task represents a replication.
+func (t Task) IsReplication() bool {
+	return t["replication"] != ""
+}
+
+// HasReplicationID returns true if a task has a given replication id.
+func (t Task) HasReplicationID(id string) bool {
+	s, _ := t["replication_id"].(string)
+	return strings.HasPrefix(s, id)
+}
 // Cancel a continuously running replication
 func (repl *Replication) Cancel() error {
 	req := replRequest{CreateTarget: true, Source: repl.source.URL(), Target: repl.target.URL(), Continuous: repl.continuous, Cancel: true}

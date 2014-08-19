@@ -88,11 +88,6 @@ func (c *Conflict) Revisions(v interface{}) {
 	json.Unmarshal(tmp, v)
 }
 
-// RevisionsCount returns number of conflicting revisions
-func (c *Conflict) RevisionsCount() int {
-	return len(c.revisions)
-}
-
 // IsReal checks if there are really conflicting revisions to solve.
 func (c *Conflict) isReal() bool {
 	return c.revisions != nil && len(c.revisions) > 1

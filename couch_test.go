@@ -307,10 +307,7 @@ func TestIntegrationNoConflict(t *testing.T) {
 		t.Fatal("Couldn't get conflicts for document", doc.ID, ", error:", err)
 	}
 	if conflict != nil {
-		numConflictingRevs := conflict.RevisionsCount()
-		if numConflictingRevs > 0 {
-			t.Fatal("Expected no conflicts for a document but got", numConflictingRevs)
-		}
+		t.Fatal("Expected no conflicts for a document but got some", conflict)
 	}
 }
 
@@ -355,10 +352,6 @@ func TestIntegrationReplicateWithConflict(t *testing.T) {
 	}
 	if conflict == nil {
 		t.Fatal("Expected 2 conflicting revisions, but got none at all")
-	}
-	numConflictingRevs := conflict.RevisionsCount()
-	if numConflictingRevs != 2 {
-		t.Fatal("Expected 2 conflicting revisions, but got", numConflictingRevs)
 	}
 
 	// It's useful to have conflicting revisions accesible with a struct if possible

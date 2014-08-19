@@ -148,6 +148,10 @@ func (db *Database) Cred() *Credentials {
 	return db.server.Cred()
 }
 
+func (db *Database) SetCred(c *Credentials) {
+	db.cred = c
+}
+
 func (db *Database) Server() *Server {
 	return db.server
 }

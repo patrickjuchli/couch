@@ -53,7 +53,7 @@ func (db *Database) ReplicateTo(target *Database, continuously bool) (*Replicati
 
 // IsReplication returns true if a task represents a replication.
 func (t Task) IsReplication() bool {
-	return t["replication"] != ""
+	return t["type"] == "replication"
 }
 
 // HasReplicationID returns true if a task has a given replication id.

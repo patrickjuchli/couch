@@ -89,7 +89,7 @@
 //  anotherDB.ReplicateTo(db, false)
 //
 // Now we have two conflicting versions of a document. Only you as the editor can decide
-// whether "LatestAnna" or "AnotherAnna" are correct. To detect this conflict there are a number
+// whether "LatestAnna" or "AnotherAnna" is correct. To detect this conflict there are a number
 // of methods. First, you can just ask a document:
 //
 //  conflict, _ := db.ConflictFor(p.ID)

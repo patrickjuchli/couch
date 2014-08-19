@@ -5,12 +5,12 @@ import (
 	"errors"
 )
 
-const (
+var (
 	// Design document for conflicts view
-	conflictsDesignID = "conflicts"
+	ConflictsDesignID = "conflicts"
 
 	// Name of the view to query documents with conflicts
-	conflictsViewID = "all"
+	ConflictsViewID = "all"
 )
 
 // Describes a conflict between different document revisions.
@@ -52,7 +52,7 @@ func (c *Conflict) SolveWith(finalDoc Identifiable) error {
 	// To do so, assign it the revision id of the first revision.
 	id, rev := c.revisions[0].IDRev()
 	finalDoc.SetIDRev(id, rev)
-	leaves := new(DocBulk)
+	leaves := new(Bulk)
 	leaves.Add(finalDoc)
 
 	// Close all other open branches by marking their leaves deleted
@@ -139,13 +139,13 @@ func (db *Database) queryConflictView(forceView bool, reduce bool) (*ViewResult,
 	if err != nil {
 		return nil, err
 	}
-	result, err := db.Query(conflictsDesignID, conflictsViewID, options)
+	result, err := db.Query(ConflictsDesignID, ConflictsViewID, options)
 	return result, err
 }
 
 // Make sure a conflict view exist, if not, create it if forceView is enabled
 func (db *Database) ensureConflictView(forceView bool) error {
-	if db.HasView(conflictsDesignID, conflictsViewID) {
+	if db.HasView(ConflictsDesignID, ConflictsViewID) {
 		return nil
 	}
 	if !forceView {
@@ -163,7 +163,7 @@ func (db *Database) createConflictView() error {
 	view.Reduce = `_count`
 	design := newDesign()
 	design.Views["all"] = view
-	design.SetIDRev("_design/"+conflictsDesignID, "")
+	design.SetIDRev("_design/"+ConflictsDesignID, "")
 	err := db.Insert(design)
 	return err
 }

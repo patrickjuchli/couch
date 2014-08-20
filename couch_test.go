@@ -512,6 +512,47 @@ func TestReplicationContinuous(t *testing.T) {
 	}
 }
 
+func TestSync(t *testing.T) {
+	db := setUpDatabase(t)
+	defer tearDownDatabase(db, t)
+
+	// Insert doc
+	originDoc := &Person{Name: "Original", Height: 185, Alive: true}
+	insertTestDoc(originDoc, db, t)
+
+	// Should start syncing continuously
+	db2 := db.Server().Database("test_db2")
+	defer tearDownDatabase(db2, t)
+	sync, err := db.SyncWith(db2, true)
+	if err != nil {
+		t.Fatal("Starting sync returns error", err)
+	}
+
+	// Should be active
+	active, err := sync.IsActive()
+	if err != nil {
+		t.Fatal("sync.IsActive returns error", err)
+	}
+	if !active {
+		t.Fatal("Sync should be reported as active but isn't")
+	}
+
+	// Should cancel
+	err = sync.Cancel()
+	if err != nil {
+		t.Fatal("Cancelling sync returns error", err)
+	}
+
+	// Should not be active
+	active, err = sync.IsActive()
+	if err != nil {
+		t.Fatal("sync.IsActive returns error", err)
+	}
+	if active {
+		t.Fatal("Sync should not be active but is reported as such")
+	}
+}
+
 func TestDo(t *testing.T) {
 	db := setUpDatabase(t)
 	defer tearDownDatabase(db, t)

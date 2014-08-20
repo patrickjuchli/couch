@@ -11,113 +11,19 @@ import (
 	"net/url"
 )
 
-// CouchDB instance
+// Server represents a CouchDB instance.
 type Server struct {
 	url  string
 	cred *Credentials
 }
 
-// Database of a CouchDB instance
-type Database struct {
-	server *Server
-	name   string
-	cred   *Credentials
-}
-
-// Any document handled by CouchDB must be identifiable
-// by an ID and a Revision, be it a struct (using Doc
-// as anonymous field) or a DynamicDoc
-type Identifiable interface {
-	SetIDRev(id string, rev string)
-	IDRev() (id string, rev string)
-}
-
-// Defines basic struct for CouchDB document, should be added
-// as an anonymous field to your custom struct.
-//
-// Example:
-//  type MyDocStruct struct {
-//   couch.Doc
-//   Title string
-//  }
-type Doc struct {
-	ID  string `json:"_id,omitempty"`
-	Rev string `json:"_rev,omitempty"`
-}
-
-// Type alias for map[string]interface{} representing
-// a fully dynamic doc that still implements Identifiable
-type DynamicDoc map[string]interface{}
-
-// Access credentials
-type Credentials struct {
-	user     string
-	password string
-}
-
-// Container for bulk operations, use associated methods.
-type Bulk struct {
-	Docs         []Identifiable `json:"docs"`
-	AllOrNothing bool           `json:"all_or_nothing"`
-}
-
-// Task describes an active task running on an instance, e.g. a continuous replication
-type Task map[string]interface{}
-
-// Implements Identifiable
-func (ref *Doc) SetIDRev(id string, rev string) {
-	ref.ID, ref.Rev = id, rev
-}
-
-// Implements Identifiable
-func (ref *Doc) IDRev() (id string, rev string) {
-	id, rev = ref.ID, ref.Rev
-	return
-}
-
-// Implements Identifiable
-func (m DynamicDoc) IDRev() (id string, rev string) {
-	id, _ = m["_id"].(string)
-	rev, _ = m["_rev"].(string)
-	return
-}
-
-// Implements Identifiable
-func (m DynamicDoc) SetIDRev(id string, rev string) {
-	m["_id"] = id
-	m["_rev"] = rev
-}
-
-// CouchDB error description
-type couchError struct {
-	Type   string `json:"error"`
-	Reason string `json:"reason"`
-}
-
-// Error implements the error interface
-func (e couchError) Error() string {
-	return "couchdb: " + e.Type + " (" + e.Reason + ")"
-}
-
-// If an error originated from CouchDB, this convenience function
-// returns its shortform error type (e.g. bad_request). If the error
-// is from a different source, the function will return an empty string.
-func ErrorType(err error) string {
-	cErr, _ := err.(couchError)
-	return cErr.Type
-}
-
-// Returns a server handle
+// NewServer returns a handle to a CouchDB instance.
 func NewServer(url string, cred *Credentials) *Server {
 	return &Server{url: url, cred: cred}
 }
 
-// Returns new credentials you can use for server and/or database operations.
-func NewCredentials(user, password string) *Credentials {
-	return &Credentials{user: user, password: password}
-}
-
-// Returns a database handle
+// Database returns a reference to a database. This method will
+// not check if the database really exists.
 func (s *Server) Database(name string) *Database {
 	return &Database{server: s, name: name}
 }
@@ -139,6 +45,74 @@ func (s *Server) ActiveTasks() ([]Task, error) {
 	return tasks, err
 }
 
+// Credentials represents access credentials.
+type Credentials struct {
+	user     string
+	password string
+}
+
+// NewCredentials returns new credentials you can use for server and/or database operations.
+func NewCredentials(user, password string) *Credentials {
+	return &Credentials{user: user, password: password}
+}
+
+// Identifiable is the only interface a data structure must satisfy to
+// be used as a CouchDB document.
+type Identifiable interface {
+
+	// SetIDRev sets the document id and revision id
+	SetIDRev(id string, rev string)
+
+	// IDRev returns the document id and revision id
+	IDRev() (id string, rev string)
+}
+
+// Doc defines a basic struct for CouchDB documents. Add it
+// as an anonymous field to your custom struct.
+type Doc struct {
+	ID  string `json:"_id,omitempty"`
+	Rev string `json:"_rev,omitempty"`
+}
+
+// Implement Identifiable
+func (ref *Doc) SetIDRev(id string, rev string) {
+	ref.ID, ref.Rev = id, rev
+}
+
+// Implement Identifiable
+func (ref *Doc) IDRev() (id string, rev string) {
+	id, rev = ref.ID, ref.Rev
+	return
+}
+
+// DynamicDoc can be used for CouchDB documents without
+// any implicit schema.
+type DynamicDoc map[string]interface{}
+
+// Implement Identifiable
+func (m DynamicDoc) IDRev() (id string, rev string) {
+	id, _ = m["_id"].(string)
+	rev, _ = m["_rev"].(string)
+	return
+}
+
+// Implement Identifiable
+func (m DynamicDoc) SetIDRev(id string, rev string) {
+	m["_id"] = id
+	m["_rev"] = rev
+}
+
+// Task describes an active task running on an instance,
+// like a continuous replication or indexing.
+type Task map[string]interface{}
+
+// Database represents a database of a CouchDB instance.
+type Database struct {
+	name   string
+	cred   *Credentials
+	server *Server
+}
+
 // Cred returns the credentials associated with the database. If there aren't any
 // it will return the ones associated with the server.
 func (db *Database) Cred() *Credentials {
@@ -148,27 +122,29 @@ func (db *Database) Cred() *Credentials {
 	return db.server.Cred()
 }
 
+// SetCred sets the credentials used for operations with the database.
 func (db *Database) SetCred(c *Credentials) {
 	db.cred = c
 }
 
+// Server returns the CouchDB instance the database is located on.
 func (db *Database) Server() *Server {
 	return db.server
 }
 
-// Create a new database
+// Create a new database on the CouchDB instance.
 func (db *Database) Create() error {
 	_, err := Do(db.URL(), "PUT", db.Cred(), nil, nil)
 	return err
 }
 
-// DropDatabase deletes a database
+// DropDatabase deletes a database.
 func (db *Database) DropDatabase() error {
 	_, err := Do(db.URL(), "DELETE", db.Cred(), nil, nil)
 	return err
 }
 
-// Exists returns true if a database really exists
+// Exists returns true if a database really exists.
 func (db *Database) Exists() bool {
 	exists, _ := checkHead(db.URL())
 	return exists
@@ -197,41 +173,6 @@ func (db *Database) Insert(doc Identifiable) error {
 	}
 	doc.SetIDRev(result.ID, result.Rev)
 	return nil
-}
-
-// CouchDB result of bulk insert
-type bulkResult struct {
-	ID     string
-	Rev    string
-	Ok     bool
-	Error  string
-	Reason string
-}
-
-// InsertBulk inserts a bulk of documents at once. This transaction can have two semantics, all-or-nothing
-// or per-document. See http://docs.couchdb.org/en/latest/api/database/bulk-api.html#bulk-documents-transaction-semantics
-// After the transaction the method may return a new bulk of documents that couldn't be inserted.
-// If this is the case you will still get an error reporting the issue.
-func (db *Database) InsertBulk(bulk *Bulk, allOrNothing bool) (*Bulk, error) {
-	var results []bulkResult
-	bulk.AllOrNothing = allOrNothing
-	_, err := Do(db.URL()+"/_bulk_docs", "POST", db.Cred(), bulk, &results)
-
-	// Update documents in bulk with ids and rev ids,
-	// compile bulk of failed documents
-	failedDocs := new(Bulk)
-	for i, result := range results {
-		if result.Ok {
-			bulk.Docs[i].SetIDRev(result.ID, result.Rev)
-		} else {
-			failedDocs.Add(bulk.Docs[i])
-		}
-	}
-	if len(failedDocs.Docs) > 0 {
-		err = errors.New("bulk insert incomplete")
-	}
-
-	return failedDocs, err
 }
 
 // Delete removes a document from the database.
@@ -279,6 +220,12 @@ func (db *Database) retrieve(id, revID string, doc interface{}, options map[stri
 	return err
 }
 
+// Bulk is a document container for bulk operations.
+type Bulk struct {
+	Docs         []Identifiable `json:"docs"`
+	AllOrNothing bool           `json:"all_or_nothing"`
+}
+
 // Add a document to a bulk of documents
 func (bulk *Bulk) Add(doc Identifiable) {
 	bulk.Docs = append(bulk.Docs, doc)
@@ -293,6 +240,41 @@ func (bulk *Bulk) Find(id, rev string) Identifiable {
 		}
 	}
 	return nil
+}
+
+// CouchDB result of bulk insert
+type bulkResult struct {
+	ID     string
+	Rev    string
+	Ok     bool
+	Error  string
+	Reason string
+}
+
+// InsertBulk inserts a bulk of documents at once. This transaction can have two semantics, all-or-nothing
+// or per-document. See http://docs.couchdb.org/en/latest/api/database/bulk-api.html#bulk-documents-transaction-semantics
+// After the transaction the method may return a new bulk of documents that couldn't be inserted.
+// If this is the case you will still get an error reporting the issue.
+func (db *Database) InsertBulk(bulk *Bulk, allOrNothing bool) (*Bulk, error) {
+	var results []bulkResult
+	bulk.AllOrNothing = allOrNothing
+	_, err := Do(db.URL()+"/_bulk_docs", "POST", db.Cred(), bulk, &results)
+
+	// Update documents in bulk with ids and rev ids,
+	// compile bulk of failed documents
+	failedDocs := new(Bulk)
+	for i, result := range results {
+		if result.Ok {
+			bulk.Docs[i].SetIDRev(result.ID, result.Rev)
+		} else {
+			failedDocs.Add(bulk.Docs[i])
+		}
+	}
+	if len(failedDocs.Docs) > 0 {
+		err = errors.New("bulk insert incomplete")
+	}
+
+	return failedDocs, err
 }
 
 // Generic CouchDB request. If CouchDB returns an error description, it
@@ -337,6 +319,24 @@ func Do(url, method string, cred *Credentials, body, response interface{}) (*htt
 		err = json.Unmarshal(respBody, response)
 	}
 	return resp, err
+}
+
+// CouchDB error description
+type couchError struct {
+	Type   string `json:"error"`
+	Reason string `json:"reason"`
+}
+
+// Error implements the error interface.
+func (e couchError) Error() string {
+	return "couchdb: " + e.Type + " (" + e.Reason + ")"
+}
+
+// ErrorType returns the shortform of a CouchDB error, e.g. bad_request.
+// If the error didn't originate from CouchDB, the function will return an empty string.
+func ErrorType(err error) string {
+	cErr, _ := err.(couchError)
+	return cErr.Type
 }
 
 // Check if HEAD response of a url succeeds

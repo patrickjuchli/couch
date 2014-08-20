@@ -197,7 +197,7 @@ func (db *Database) Name() string {
 	return db.name
 }
 
-// Retrieve gets the latest revision document of a document, the result will be written into doc
+// Retrieve gets the latest revision of a document, the result will be written into doc
 func (db *Database) Retrieve(docID string, doc Identifiable) error {
 	return db.retrieve(docID, "", doc, nil)
 }
@@ -351,7 +351,7 @@ func checkHead(url string) (bool, error) {
 	return true, nil
 }
 
-// Encode map entries to a string that can be used as parameters to a url
+// Encode map entries to a string that can be used as parameters to a url.
 func urlEncode(options map[string]interface{}) string {
 	n := len(options)
 	if n == 0 {
@@ -364,9 +364,7 @@ func urlEncode(options map[string]interface{}) string {
 		switch v.(type) {
 		case string:
 			s = fmt.Sprintf(`%s=%s&`, k, url.QueryEscape(v.(string)))
-		case int:
-			s = fmt.Sprintf(`%s=%d&`, k, v)
-		case bool:
+		case uint8, uint16, uint32, uint64, int8, int16, int32, int64, float32, float64, complex64, complex128, uint, int, bool:
 			s = fmt.Sprintf(`%s=%v&`, k, v)
 		}
 		buf.WriteString(s)
